@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Text Encryption and Decryption. AES-GCM Version 1</title>
+  <style>
+      body {
+          background-color: #1f1f1f;
+          color: #ffffff;
+          font-family: Arial, sans-serif;
+      }
+
+      h1, h2 {
+          color: #707077;
+      }
+
+      input[type="password"] {
+          background-color: #333333;
+          color: #ffffff;
+          border: none;
+          width: 37%;
+          padding: 10px;
+          box-sizing: border-box;
+      }
+
+      textarea, button {
+          background-color: #333333;
+          color: #ffffff;
+          border: none;
+          padding: 5px;
+          margin-bottom: 10px;
+      }
+
+      button:hover {
+          background-color: #555555;
+          cursor: pointer;
+      }
+      a, a:link, a:visited, a:active {
+        color: green;
+        text-decoration: underline;
+      }
+
+  </style>
+</head>
+
+<body>
+<h1>Text Encryption and Decryption </h1>
+<h2> AES-GCM Version 1 </h2>
+
+<label for="password">Password:</label><br>
+<input type="password" id="password" name="plaintext" oninput="checkPasswordMatch()"><br>
+<br>
+
+<label for="confirmPassword">Confirm Password:</label><br>
+<input type="password" id="confirmPassword" name="confirmPlaintext" oninput="checkPasswordMatch()"><br>
+<br>
+
+<label for="plaintext">Plain text:</label><br>
+<textarea id="plaintext" rows="9" cols="58"></textarea><br>
+<input type="button" value="Encrypt" onclick="displayEncryptResult()" id="encryptButton" disabled>
+<input type="button" value="clear plaintext" onclick="clearPlaintext()" id="clearPlaintext"><br><br>
+
+<label for="cipherText">ciphertext:</label><br>
+<textarea id="cipherText" rows="9" cols="58"></textarea><br>
+<input type="button" value="copy ciphertext" onclick="copyCiphertext()" id="copyCiphertext">
+<input type="button" value="Decrypt" onclick="displayDecryptResult()" id="decryptButton" disabled><br><br>
+
+<label for="decryptedText">decrypted text:</label><br>
+<textarea id="decryptedText" rows="9" cols="58" readonly></textarea><br>
+<input type="button" value="copy decrypted text" onclick="copyDecryptedText()" id="copyDecryptedText">
+<input type="button" value="clear decrypted text" onclick="clearDecryptedText()" id="clearDecryptedText">
+
+<script>
+  class AesGcmCipher {
+    constructor(key, password) {
+      this.key = key;
+      this.digestMessage(password).then(result=> this.password = result);
+    }
+
+    async digestMessage(message) {
+      const msgUint8 = new TextEncoder().encode(message);
+      const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgUint8);
+
+      return this.buf2hex(hashBuffer);
+    }
+
+
+    async encrypt(plainText) {
+      return this.encryptAesGcm(plainText, this.key, this.password);
+    }
+
+    async decrypt(encryptedText) {
+      return this.decryptAesGcm(encryptedText, this.key, this.password)
+    }
+
+    prettyBuf2hex(buffer) { // buffer is an ArrayBuffer
+      const prefix = "---------------------------myth---------------------------\n";
+      const postfix = "\n---------------------------MYTH---------------------------";
+      const hexString = this.buf2hex(buffer);
+      return prefix + this.stringWrap(hexString, prefix.length - 1) + postfix;
+    }
+
+    stringWrap(source, maxLength) {
+      let index = 1;
+      let result = [];
+      for (let i = 0; i < source.length; i++) {
+        result.push(source.charAt(i));
+        if (index >= maxLength) {
+          result.push('\n');
+          index = 0;
+        }
+        index++;
+
+      }
+      return result.join('');
+    }
+
+    buf2hex(buffer) {
+      return [...new Uint8Array(buffer)]
+          .map(x => x.toString(16).padStart(2, '0'))
+          .join('')
+          .toUpperCase();
+    }
+
+    hexStringToBuf(hexString) {
+      const sanitizedHexString = hexString.replace(/([^a-f0-9]+)/gi, '');
+      const typedArray = new Uint8Array(sanitizedHexString.match(/[\da-f]{2}/gi).map(function (h) {
+        return parseInt(h, 16)
+      }));
+      return typedArray.buffer;
+    }
+
+    async encryptAesGcm(plaintext, key, tweak) {
+      let enc = new TextEncoder();
+      const plaintextDigits = enc.encode(plaintext);
+      const aesKey = await crypto.subtle.importKey(
+        "raw",
+        key,
+        {name: "AES-GCM"},
+        false,
+        ["encrypt"]
+      );
+
+      // Convert tweak to byte array
+      const tweakBytes = new TextEncoder().encode(tweak);
+
+      const encryptedBlock = await crypto.subtle.encrypt(
+        {name: "AES-GCM", iv: tweakBytes},
+        aesKey,
+        new Uint8Array(plaintextDigits)
+      );
+
+      return this.prettyBuf2hex(encryptedBlock);
+    }
+
+    async decryptAesGcm(ciphertext, key, tweak) {
+      const cipherTextDigits = this.hexStringToBuf(ciphertext);
+
+      const aesKey = await crypto.subtle.importKey(
+        "raw",
+        key,
+        {name: "AES-GCM"},
+        false,
+        ["decrypt"]
+      );
+
+      const tweakBytes = new TextEncoder().encode(tweak);
+
+      const decryptedBlock = await crypto.subtle.decrypt(
+        {name: "AES-GCM", iv: tweakBytes},
+        aesKey,
+        cipherTextDigits
+      );
+
+      let decoder = new TextDecoder();
+      return decoder.decode(decryptedBlock);
+    }
+
+  }
+
+  // AES key (16 bytes)
+  const KEY = new Uint8Array([0x3a, 0x06, 0x0e, 0xca, 0xc9, 0x5f, 0x25, 0x67, 0xaa, 0xdb, 0x18, 0xf0, 0x3c, 0x48, 0xfe, 0xed]);
+  let cipher = undefined;
+
+  function copyCiphertext() {
+    let plaintextField = document.getElementById('cipherText');
+    plaintextField.select();
+    document.execCommand('copy');
+  }
+
+  function copyDecryptedText() {
+    let plaintextField = document.getElementById('decryptedText');
+    plaintextField.select();
+    document.execCommand('copy');
+  }
+
+  function clearDecryptedText() {
+    document.getElementById('decryptedText').value = "";
+  }
+
+  function clearPlaintext() {
+    document.getElementById('plaintext').value = "";
+  }
+
+  function checkPasswordMatch() {
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+    const encryptButton = document.getElementById("encryptButton");
+    const decryptionButton = document.getElementById("decryptButton");
+    let disabled = password !== confirmPassword;
+    encryptButton.disabled = disabled;
+    decryptionButton.disabled = disabled;
+
+    if (disabled) {
+      cipher = undefined;
+    } else {
+      cipher = new AesGcmCipher(KEY, password);
+    }
+  }
+
+  async function displayEncryptResult() {
+    const plaintext = document.getElementById("plaintext").value;
+    cipher.encrypt(plaintext).then(cipherText => {
+      document.getElementById("cipherText").value = cipherText;
+    })
+
+  }
+
+  async function displayDecryptResult() {
+    const encryptedText = document.getElementById("cipherText").value;
+    cipher.decrypt(encryptedText).then(decryptedPlaintext => {
+      document.getElementById("decryptedText").value = decryptedPlaintext;
+    }).catch(error => {
+      document.getElementById("decryptedText").value = "Invalid data or password. Error:" + error;
+    });
+  }
+
+</script>
+<div class="container">
+  <h3>Operation and privacy</h3>
+  <p>
+    This page utilizes JavaScript executed within your web browser to perform in-browser encryption
+    and decryption of data. No network connections are established during this process, ensuring
+    that your data and encryption keys remain exclusively within the confines of your web browser.
+    This claim can be independently verified by examining the page's source code.
+  </p>
+
+  <h3>Running this page offline</h3>
+  <p>
+    This web page is completely self-contained. It does not rely on any external files; all JavaScript
+    and CSS necessary for its functionality are included directly in its source code. To run this page
+    offline on your system, simply save it as an .html file and open it in your web browser.
+  </p>
+
+  <h3>License</h3>
+  <p>
+    This project is licensed under the
+    <a href='https://www.gnu.org/licenses/gpl-3.0.en.html'>GPL-3.0 open source license</a>
+    open source license.
+  </p>
+  <h3>Contact</h3>
+  <pre>
+  Jimmy Zhang (5a51597d8ac64f180be66f9bc58ebd13281ce242bb8222b3b9eba3d8bf20fcb7)
+  ---------------------------myth---------------------------
+  637BA144D870AEE78F453F4FF753BAFA879CF3A7E7874823B7E759FED9
+  7361B12F2180AA5A6869AC
+  ---------------------------MYTH---------------------------
+  </pre>
+</div>
+
+</body>
+</html>
