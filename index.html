@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PaymentRequest API Support Check</title>
+</head>
+<body>
+<h1>PaymentRequest API Support Check</h1>
+<p id="payment-api-support">Checking support for PaymentRequest API...</p>
+
+<input type="button" value="Checking if Secure Payment Confirmation is available" onclick="displayCheckSpcResult()"
+       id="CheckSpcButton">
+<p id="secure-payment-support"></p>
+
+<label for="detail">Detail</label><br>
+<textarea id="detail" rows="9" cols="68" readonly></textarea><br>
+
+
+<script>
+  // Check if the PaymentRequest API is supported
+  if (window.PaymentRequest) {
+    document.getElementById('payment-api-support').textContent = 'PaymentRequest API is supported.';
+  } else {
+    document.getElementById('payment-api-support').textContent = 'PaymentRequest API is NOT supported.';
+    document.getElementById("CheckSpcButton").disabled = true;
+  }
+
+  async function checkSpc() {
+    return window.PaymentRequest &&
+      window.PaymentRequest.isSecurePaymentConfirmationAvailable
+      && await window.PaymentRequest.isSecurePaymentConfirmationAvailable();
+  }
+
+  async function displayCheckSpcResult() {
+    let spcAvailable = await checkSpc();
+    if (spcAvailable) {
+      spcAvailable.then(result => {
+          if (result) {
+            document.getElementById('secure-payment-support').textContent = 'Secure Payment Confirmation is supported.';
+          } else {
+            document.getElementById('secure-payment-support').textContent = 'Secure Payment Confirmation is NOT supported.';
+          }
+        }
+      );
+    } else {
+      document.getElementById('secure-payment-support').textContent = 'Secure Payment Confirmation is NOT supported.';
+      document.getElementById('detail').textContent = `PaymentRequest.isSecurePaymentConfirmationAvailable: ${window.PaymentRequest.isSecurePaymentConfirmationAvailable}`;
+    }
+  }
+
+</script>
+
+</body>
+</html>
