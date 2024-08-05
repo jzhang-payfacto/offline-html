@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text Encryption and Decryption. Version 1</title>
+  <style>
+      body {
+          background-color: #1f1f1f;
+          color: #ffffff;
+          font-family: Arial, sans-serif;
+      }
+
+      h1, h2 {
+          color: #707077;
+      }
+
+      input[type="password"] {
+          background-color: #333333;
+          color: #ffffff;
+          border: none;
+          width: 37%;
+          padding: 10px;
+          box-sizing: border-box;
+      }
+
+      textarea, button {
+          background-color: #333333;
+          color: #ffffff;
+          border: none;
+          padding: 5px;
+          margin-bottom: 10px;
+      }
+
+      button:hover {
+          background-color: #555555;
+          cursor: pointer;
+      }
+  </style>
+</head>
+
+<body>
+<h1>Text Encryption and Decryption</h1>
+<h2> Substitution Cipher Version 1 </h2>
+
+<div>
+  <button id="buttonRefresh" style="color: greenyellow" onClick="location.reload();"><b>Refresh Page</b></button><br>
+  <br>
+</div>
+
+<div>
+  <label for="mathExpression">Mathematical expression</label><br>
+  <textarea id="mathExpression" rows="15" cols="59" oninput="onInputMathExpression()">return 10;</textarea><br>
+  <p id="mathematicalExpressionResult"></p>
+  <br>
+</div>
+
+<label for="password">Password:</label><br>
+<input type="password" id="password" name="plaintext" oninput="checkPasswordMatch()"><br>
+<br>
+
+<label for="confirmPassword">Confirm Password:</label><br>
+<input type="password" id="confirmPassword" name="confirmPlaintext" oninput="checkPasswordMatch()"><br>
+<br>
+
+<label for="plaintext">Plain text:</label><br>
+<textarea id="plaintext" rows="9" cols="58"></textarea><br>
+<input type="button" value="Encrypt" onclick="displayEncryptResult()" id="encryptButton" disabled>
+<input type="button" value="clear plaintext" onclick="clearPlaintext()" id="clearPlaintext"><br><br>
+
+<label for="cipherText">ciphertext:</label><br>
+<textarea id="cipherText" rows="9" cols="58"></textarea><br>
+<input type="button" value="copy ciphertext" onclick="copyCiphertext()" id="copyCiphertext">
+<input type="button" value="Decrypt" onclick="displayDecryptResult()" id="decryptButton" disabled><br><br>
+
+<label for="decryptedText">decrypted text:</label><br>
+<textarea id="decryptedText" rows="9" cols="58" readonly></textarea><br>
+<input type="button" value="copy decrypted text" onclick="copyDecryptedText()" id="copyDecryptedText">
+<input type="button" value="clear decrypted text" onclick="clearDecryptedText()" id="clearDecryptedText">
+
+<script>
+  class SubstitutionCipher {
+    constructor(key, password) {
+      this.key = key;
+      this.keyLength = key.length;
+      this.steps = this.toUint(password) % this.keyLength;
+    }
+
+    containsOnlyDigits(str) {
+      return /^\d+$/.test(str);
+    }
+
+    toUint(password) {
+      if (this.containsOnlyDigits(password)) {
+        return Math.abs(parseInt(password));
+      }
+
+      let utf8Encode = new TextEncoder();
+      let uint8Array = utf8Encode.encode(password);
+      return uint8Array.reduce(function (x, y) {
+        return x + y;
+      }, 0);
+    }
+
+    addWithWrapAround(currentNumber, x, maxNumber) {
+      let result = currentNumber + x;
+
+      if (result > maxNumber) {
+        result = result % (maxNumber + 1);
+      }
+
+      return result;
+    }
+
+    subtractWithWrapAround(currentNumber, x, maxNumber) {
+      let result = currentNumber - x;
+
+      if (result < 0) {
+        result = maxNumber + 1 + result;
+      }
+
+      return result;
+    }
+
+    encrypt(plainText) {
+      let encryptedText = "";
+      for (let i = 0; i < plainText.length; i++) {
+        const char = plainText[i];
+        const index = this.key.indexOf(char);
+        if (index !== -1) {
+          const pointer = this.addWithWrapAround(index, this.steps, this.keyLength - 1);
+          encryptedText += this.key[pointer];
+        } else {
+          encryptedText += char;
+        }
+      }
+      return encryptedText;
+    }
+
+    decrypt(encryptedText) {
+      let decryptedText = "";
+      for (let i = 0; i < encryptedText.length; i++) {
+        const char = encryptedText[i];
+        const index = this.key.indexOf(char);
+        if (index !== -1) {
+          const pointer = this.subtractWithWrapAround(index, this.steps, this.keyLength - 1);
+          decryptedText += this.key[pointer];
+        } else {
+          decryptedText += char;
+        }
+      }
+      return decryptedText;
+    }
+  }
+
+  const math_expression = `
+function () {
+  // change x, a, b, c value
+  let x = 2;
+  let a = 10;
+  let b = 20;
+  let c = 30;
+
+  return a * x**2 + b * x  + c;
+
+}()`;
+
+  document.getElementById("mathExpression").value = math_expression;
+
+  function indirectEval(obj) {
+    try {
+      const gEval = eval;
+      return gEval(`"use strict";
+      (${obj})`);
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  function onInputMathExpression() {
+    let expression = document.getElementById("mathExpression").value;
+    document.getElementById("mathematicalExpressionResult").innerHTML = indirectEval(expression);
+  }
+
+  onInputMathExpression();
+
+  //  Base58 is Base64 without the number 0 (zero), O (capital letter O), l (small L), I (large i)
+  const KEY = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
+  let cipher = undefined;
+
+  function copyCiphertext() {
+    let plaintextField = document.getElementById('cipherText');
+    plaintextField.select();
+    document.execCommand('copy');
+  }
+
+  function copyDecryptedText() {
+    let plaintextField = document.getElementById('decryptedText');
+    plaintextField.select();
+    document.execCommand('copy');
+  }
+
+  function clearDecryptedText() {
+    document.getElementById('decryptedText').value = "";
+  }
+
+  function clearPlaintext() {
+    document.getElementById('plaintext').value = "";
+  }
+
+  function checkPasswordMatch() {
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+    const encryptButton = document.getElementById("encryptButton");
+    const decryptionButton = document.getElementById("decryptButton");
+    let disabled = password !== confirmPassword;
+    encryptButton.disabled = disabled;
+    decryptionButton.disabled = disabled;
+
+    if (disabled) {
+      cipher = undefined;
+    } else {
+      cipher = new SubstitutionCipher(KEY, password);
+    }
+  }
+
+  async function displayEncryptResult() {
+
+    const plaintext = document.getElementById("plaintext").value;
+    document.getElementById("cipherText").value = cipher.encrypt(plaintext);
+  }
+
+  async function displayDecryptResult() {
+    const encryptedText = document.getElementById("cipherText").value;
+    document.getElementById("decryptedText").value = cipher.decrypt(encryptedText);
+  }
+
+</script>
+<div class="container">
+  <h3>Operation and privacy</h3>
+  <p>
+    This page utilizes JavaScript executed within your web browser to perform in-browser encryption
+    and decryption of data. No network connections are established during this process, ensuring
+    that your data and encryption keys remain exclusively within the confines of your web browser.
+    This claim can be independently verified by examining the page's source code.
+  </p>
+
+  <h3>Running this page offline</h3>
+  <p>
+    This web page is completely self-contained. It does not rely on any external files; all JavaScript
+    and CSS necessary for its functionality are included directly in its source code. To run this page
+    offline on your system, simply save it as an .html file and open it in your web browser.
+  </p>
+
+  <h3>License</h3>
+  <p>
+    This project is licensed under the
+    <a href='https://www.gnu.org/licenses/gpl-3.0.en.html'>GPL-3.0 open source license</a>
+    open source license.
+  </p>
+  <h3>Contact</h3>
+  <pre>
+Jimmy Zhang (5a51597d8ac64f180be66f9bc58ebd13281ce242bb8222b3b9eba3d8bf20fcb7)
+--------------------------
+FEHHV.WDwJC@LwVBwyQK.yKH
+0nopqrstuv
+wxyzABCDEFGlHJKLMNPQRSTUVW
+XYZ12345I6789aObcdefghijkm
+--------------------------
+  </pre>
+</div>
+
+</body>
+</html>
