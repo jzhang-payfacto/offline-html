@@ -20,5 +20,6 @@ source code.
 |--------------------------------------------|--------------------------------------------|
 |[index.html](https://jzhang-payfacto.github.io/offline-html/) |PaymentRequest API Support Check|
 |[aes-gcm-text-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/aes-gcm-text-encryption-v1.html) | Tool for AES-GCM 128-bit Encryption and Decryption| 
+|[simple-text-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/simple-text-encryption-v1.html)|Simple Substitution Cipher Encryption and Decryption |
 
  
