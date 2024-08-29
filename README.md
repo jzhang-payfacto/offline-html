@@ -19,7 +19,9 @@ source code.
 | File Name                                       | Description                                |
 |--------------------------------------------|--------------------------------------------|
 |[index.html](https://jzhang-payfacto.github.io/offline-html/) |PaymentRequest API Support Check|
-|[aes-gcm-text-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/aes-gcm-text-encryption-v1.html) | Tool for AES-GCM 128-bit Encryption and Decryption| 
-|[simple-text-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/simple-text-encryption-v1.html)|Simple Substitution Cipher Encryption and Decryption |
+|[aes-cbc-file-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/aes-cbc-file-encryption-v1.html)| AES-256-CBC File Encryption and Decryption|
+|[aes-gcm-text-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/aes-gcm-text-encryption-v1.html) | AES-GCM 128-bit Text Encryption and Decryption| 
+|[simple-text-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/simple-text-encryption-v1.html)|Simple Substitution Cipher Text Encryption and Decryption |
+
 
  
