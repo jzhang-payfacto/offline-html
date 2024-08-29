@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>File Encryption and Decryption. aes-256-cbc Version 1</title>
+</head>
+<style>
+  h1, h2 {
+    color: #707077;
+  }
+
+  body {
+    background-color: #1f1f1f;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+  }
+
+  input[type="password"] {
+    background-color: #333333;
+    color: #ffffff;
+    border: none;
+    width: 37%;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  textarea, button {
+    background-color: #333333;
+    color: #ffffff;
+    border: none;
+    padding: 5px;
+    margin-bottom: 10px;
+  }
+
+  button:hover {
+    background-color: #555555;
+    cursor: pointer;
+  }
+
+
+  a, a:link, a:visited, a:active {
+    color: green;
+    text-decoration: underline;
+  }
+
+  a:hover {
+    cursor: pointer;
+    color: red;
+  }
+
+  .container {
+    width: 80%;
+    margin: 0 auto;
+  }
+
+  .dropZone {
+    border: 10px dashed gray;
+    width: 40%;
+    padding: 2% 2% 5% 2%;
+    text-align: center;
+    margin: 5px 0 5px 0;
+  }
+
+  .happyPathClass {
+    color: green;
+  }
+
+  .errorResultClass {
+    color: red;
+  }
+
+  hr {
+    border: 2px solid green;
+    width: 100%;
+    margin: 20px auto;
+  }
+
+</style>
+<body>
+<div class=container>
+  <h1>File Encryption and Decryption</h1>
+  <h2>aes-256-cbc Version 1</h2>
+  <button onClick="location.reload();">Refresh Page</button>
+  <button id="buttonEncryptMode" onClick="activeMode('encrypt');">Encrypt a File</button>
+  <button id="buttonDecryptMode" onClick="activeMode('decrypt');">Decrypt a File</button>
+  <hr/>
+</div>
+
+<div class="container" id=encryptFileContainer>
+  <h2>Encrypt a File</h2>
+  <label>Password
+    <input id=encryptPassword type=password size=58 onkeyup=validateEncryptionPassword(); value=''><br>
+  </label>
+  <br>
+  <label>Password (retype)
+    <input id=encryptPasswordRetype type=password size=58 onkeyup=validateEncryptionPassword(); value=''>
+    <span class=happyPathClass id=spanCheckRetype></span>
+  </label>
+  <div>
+    <br><br>
+  </div>
+
+  <div class=dropZone ondrop="drop_handler(event);" ondragover="dragover_handler(event);"
+       ondragend="dragend_handler(event);">
+    <p>Drag and drop the file to be encrypted into this drop zone, or click <a onclick=encryptFileItem.click();>here</a>
+      to select file.</p>
+    <p><span id=encryptFileName></span></p>
+    <input type="file" id="encryptFileItem" style="display:none" onchange="select_file(this.files)">
+  </div>
+
+  <div>
+    <br>
+    <button id=buttonEncrypt onclick=encrypt_file(); disabled>Encrypt File</button>
+    <span id=encryptStatus></span>
+  </div>
+
+  <div>
+    <a id=saveEncryptedFile hidden>
+      <button>Save Encrypted File</button>
+    </a>
+  </div>
+</div>
+
+<div class="container" id=decryptFileContainer>
+  <h2>Decrypt a File</h2>
+  <label>Password
+    <input id=decryptPassword type=password size=58 onkeyup=validateDecryptPassword(); value=''>
+  </label>
+  <div>
+    <br><br>
+  </div>
+
+  <div>
+    <div class=dropZone ondrop="drop_handler(event);" ondragover="dragover_handler(event);"
+         ondragend="dragend_handler(event);">
+      <p>Drag and drop file to be decrypted into this drop zone, or click
+        <a role=button onclick=decryptFileItem.click();>here</a> to select file.
+      </p>
+      <p><span id=decryptFileName></span></p>
+      <input type="file" id="decryptFileItem" style="display:none" onchange="select_file(this.files)">
+    </div>
+  </div>
+
+  <div>
+    <br>
+    <button id=buttonDecrypt onclick=decrypt_file(); disabled>Decrypt File</button>
+    <span class=happyPathClass id=decryptStatus></span>
+    <span class="errorResultClass" id=decryptErrorStatus></span>
+  </div>
+
+  <div>
+    <a id=saveDecryptedFile hidden>
+      <button>Save Decrypted File</button>
+    </a>
+  </div>
+</div>
+
+<div class="container">
+  <h4>Compatibility with openssl</h4>
+  <p>
+    The encryption used by this page is compatible with
+    <a href='https://docs.openssl.org/3.3/man1/openssl-enc/'>openssl</a>
+  </p>
+  <BR>
+  Files encrypted by this page can be decrypted by the following command:<BR>
+  <pre>
+      openssl aes-256-cbc -d -salt -pbkdf2 -iter 10000 -in encryptedFileName -out decryptedFileName
+  </pre>
+  Files encrypted by the following openssl command can be decrypted by this page:<BR>
+  <pre>
+      openssl aes-256-cbc -e -salt -pbkdf2 -iter 10000 -in fileName -out encryptedFileName
+  </pre>
+
+</div>
+</body>
+</html>
+
+<script type="text/javascript">
+  class OpensslAesCbcCipher {
+
+    /*
+  *  returns Uint8Array
+  * */
+    async encrypt_bytes(password_string /*string */, plaintext_bytes /*Uint8Array*/) {
+      const pbkdf2_iterations = 10000;
+      const passphrase_bytes = new TextEncoder("utf-8").encode(password_string);
+      const pbkdf2salt = window.crypto.getRandomValues(new Uint8Array(8));
+
+      let passphrase_key = await window.crypto.subtle.importKey(
+          "raw",
+          passphrase_bytes,
+          {
+            name: 'PBKDF2'
+          },
+          false,
+          ['deriveBits']);
+
+      let pbkdf2bytes = await window.crypto.subtle.deriveBits(
+          {
+            "name": 'PBKDF2',
+            "salt": pbkdf2salt,
+            "iterations": pbkdf2_iterations,
+            "hash": 'SHA-256'
+          },
+          passphrase_key,
+          384);
+
+      pbkdf2bytes = new Uint8Array(pbkdf2bytes);
+
+      const key_bytes = pbkdf2bytes.slice(0, 32);
+      const iv_bytes = pbkdf2bytes.slice(32);
+
+      const key = await window.crypto.subtle.importKey(
+          'raw',
+          key_bytes,
+          {
+            name: 'AES-CBC',
+            length: 256
+          },
+          false,
+          ['encrypt']);
+
+      const cipher_array_buffer = await window.crypto.subtle.encrypt(
+          {
+            name: "AES-CBC",
+            iv: iv_bytes
+          },
+          key,
+          plaintext_bytes);
+
+      if (!cipher_array_buffer) {
+        return null;
+      }
+
+      const cipher_bytes = new Uint8Array(cipher_array_buffer);
+      const result_bytes = new Uint8Array(cipher_bytes.length + 16);
+
+      result_bytes.set(new TextEncoder("utf-8").encode('Salted__'));
+      result_bytes.set(pbkdf2salt, 8);
+      result_bytes.set(cipher_bytes, 16);
+
+      return result_bytes;
+    }
+
+    /*
+  *  returns Uint8Array
+  * */
+    async decrypt_bytes(password_string /*string*/, cipher_bytes /*Uint8Array*/) {
+      const signature = new TextDecoder().decode(cipher_bytes.slice(0, 8));
+      if (signature !== "Salted__") {
+        throw new Error("Invalid file, file does not have magic signature 'Salted__'");
+      }
+
+      const pbkdf2_iterations = 10000;
+      const pass_phrase_bytes = new TextEncoder("utf-8").encode(password_string);
+      const pbkdf2salt = cipher_bytes.slice(8, 16);
+
+      const passphrase_key = await window.crypto.subtle.importKey(
+          'raw',
+          pass_phrase_bytes,
+          {
+            name: 'PBKDF2'
+          },
+          false,
+          ['deriveBits']
+      );
+
+      const pbkdf2bytes = await window.crypto.subtle.deriveBits(
+          {
+            "name": 'PBKDF2',
+            "salt": pbkdf2salt,
+            "iterations": pbkdf2_iterations,
+            "hash": 'SHA-256'
+          },
+          passphrase_key,
+          384);
+
+      const key_bytes = pbkdf2bytes.slice(0, 32);
+      const key = await window.crypto.subtle.importKey(
+          'raw',
+          key_bytes,
+          {
+            name: 'AES-CBC',
+            length: 256
+          },
+          false,
+          ['decrypt']);
+
+      const data = cipher_bytes.slice(16);
+      const iv_bytes = new Uint8Array(pbkdf2bytes).slice(32);
+
+      const plaintext_bytes = await window.crypto.subtle.decrypt(
+          {
+            name: "AES-CBC",
+            iv: iv_bytes
+          },
+          key,
+          data);
+
+      return new Uint8Array(plaintext_bytes);
+    }
+  }
+
+
+  const global_cipher = new OpensslAesCbcCipher();
+  let global_mode = null;
+  let global_source_file = null;
+
+  activeMode('encrypt');
+
+  function activeMode(request) {
+    if (request === 'encrypt') {
+      encryptFileContainer.style.display = 'block';
+      decryptFileContainer.style.display = 'none';
+      buttonEncryptMode.disabled = true;
+      buttonDecryptMode.disabled = false;
+      global_mode = 'encrypt';
+    } else if (request === 'decrypt') {
+      encryptFileContainer.style.display = 'none';
+      decryptFileContainer.style.display = 'block';
+      buttonEncryptMode.disabled = false;
+      buttonDecryptMode.disabled = true;
+      global_mode = 'decrypt';
+    }
+  }
+
+  function validateEncryptionPassword() {
+    if (encryptPassword.value.length >= 1 && encryptPassword.value === encryptPasswordRetype.value) {
+      spanCheckRetype.classList.add("happyPathClass");
+      spanCheckRetype.classList.remove("errorResultClass");
+      spanCheckRetype.innerHTML = '&#10004;';
+    } else {
+      spanCheckRetype.classList.remove("happyPathClass");
+      spanCheckRetype.classList.add("errorResultClass");
+      spanCheckRetype.innerHTML = '&#10006;';
+    }
+
+    if (encryptPassword.value.length >= 1 && encryptPassword.value === encryptPasswordRetype.value && global_source_file) {
+      buttonEncrypt.disabled = false;
+    } else {
+      buttonEncrypt.disabled = true;
+    }
+  }
+
+  function validateDecryptPassword() {
+    buttonDecrypt.disabled = !(decryptPassword.value.length > 0 && global_source_file);
+  }
+
+  function update_encrypt_decrypt_button_ui() {
+    update_file_ui();
+    if (global_mode === 'encrypt') {
+      validateEncryptionPassword();
+    } else if (global_mode === 'decrypt') {
+      validateDecryptPassword();
+    }
+  }
+
+  //https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop
+  function drop_handler(event) {
+    event.preventDefault();
+
+    let data_transfer = event.dataTransfer;
+    if (data_transfer.items) {
+      for (let i = 0; i < data_transfer.items.length; i++) {
+        if (data_transfer.items[i].kind === "file") {
+          const file = data_transfer.items[i].getAsFile();
+          console.log("... file[" + i + "].name = " + file.name);
+          global_source_file = file;
+        }
+      }
+    } else {
+      for (let i = 0; i < data_transfer.files.length; i++) {
+        console.log("... file[" + i + "].name = " + data_transfer.files[i].name);
+      }
+      global_source_file = data_transfer.files.item(0);
+    }
+    update_encrypt_decrypt_button_ui();
+
+  }
+
+  function dragover_handler(event) {
+    event.preventDefault();
+  }
+
+  function dragend_handler(event) {
+    const data_transfer = event.dataTransfer;
+    if (data_transfer.items) {
+      for (let i = 0; i < data_transfer.items.length; i++) {
+        data_transfer.items.remove(i);
+      }
+    } else {
+      event.dataTransfer.clearData();
+    }
+  }
+
+  function select_file(files) {
+    global_source_file = files[0];
+    update_encrypt_decrypt_button_ui()
+  }
+
+  function update_file_ui() {
+    const sizeUnits = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const bytes = global_source_file.size;
+    const unitIndex = (Math.floor(Math.log(bytes) / Math.log(1024)));
+    let fileSize;
+    if (unitIndex === 0) {
+      fileSize = bytes + ' ' + sizeUnits[unitIndex];
+    } else {
+      fileSize = (bytes / Math.pow(1024, unitIndex)).toFixed(2) + ' ' + sizeUnits[unitIndex];
+    }
+
+    if (global_mode === 'encrypt') {
+      encryptFileName.textContent = global_source_file.name + ' (' + fileSize + ')';
+    } else if (global_mode === 'decrypt') {
+      decryptFileName.textContent = global_source_file.name + ' (' + fileSize + ')';
+    }
+  }
+
+  function read_file(file) {
+    return new Promise((resolve, reject) => {
+      const fileReader = new FileReader();
+      fileReader.onload = () => {
+        resolve(fileReader.result)
+      };
+      fileReader.readAsArrayBuffer(file);
+    });
+  }
+
+  async function encrypt_file() {
+    buttonEncrypt.disabled = true;
+
+    const password_string = encryptPassword.value;
+    let plaintextbytes = await read_file(global_source_file);
+    plaintextbytes = new Uint8Array(plaintextbytes);
+
+    let result_bytes = await global_cipher.encrypt_bytes(password_string, plaintextbytes);
+
+    if (!result_bytes) {
+      encryptStatus.classList.add("errorResultClass");
+      encryptStatus.innerHTML = '<p>Error encrypting file.  Please try refresh page</p>';
+      return;
+    }
+
+    const blob = new Blob([result_bytes], {type: 'application/download'});
+    saveEncryptedFile.href = URL.createObjectURL(blob);
+    saveEncryptedFile.download = global_source_file.name + '.enc';
+
+    encryptStatus.classList.add("happyPathClass");
+    encryptStatus.innerHTML = '<p>File encrypted.</p>';
+    saveEncryptedFile.hidden = false;
+  }
+
+  async function decrypt_file() {
+    buttonDecrypt.disabled = true;
+
+    try {
+      const cipher_bytes = await read_file(global_source_file);
+      const password_string = decryptPassword.value;
+      const plaintext_bytes = await global_cipher.decrypt_bytes(password_string, new Uint8Array(cipher_bytes));
+
+      const blob = new Blob([plaintext_bytes], {type: 'application/download'});
+
+      saveDecryptedFile.href = URL.createObjectURL(blob);
+      saveDecryptedFile.download = removePostfix(global_source_file.name, '.enc');
+      decryptStatus.innerHTML = '<p>File decrypted.</p>';
+
+      decryptErrorStatus.innerHTML = '';
+      saveDecryptedFile.hidden = false;
+
+    } catch (error) {
+      decryptErrorStatus.innerHTML = '<p>Error decrypting file.  Password may be incorrect.</p><br> Detail:' + error;
+      decryptStatus.innerHTML = '';
+      saveDecryptedFile.hidden = true;
+    }
+  }
+
+  function removePostfix(inputString, postfix) {
+    if (inputString.endsWith(postfix)) {
+      return inputString.slice(0, -postfix.length);
+    }
+    return inputString;
+  }
+
+</script>
+
+<div class="container">
+  <h3>Operation and privacy</h3>
+  <p>
+    This page utilizes JavaScript executed within your web browser to perform in-browser encryption
+    and decryption of data. No network connections are established during this process, ensuring
+    that your data and encryption keys remain exclusively within the confines of your web browser.
+    This claim can be independently verified by examining the page's source code.
+  </p>
+
+  <h3>Running this page offline</h3>
+  <p>
+    This web page is completely self-contained. It does not rely on any external files; all JavaScript
+    and CSS necessary for its functionality are included directly in its source code. To run this page
+    offline on your system, simply save it as an .html file and open it in your web browser.
+  </p>
+
+  <h3>License</h3>
+  <p>
+    This project is licensed under the
+    <a href='https://www.gnu.org/licenses/gpl-3.0.en.html'>GPL-3.0 open source license</a>
+    open source license.
+  </p>
+  <h3>Contact</h3>
+  <pre>
+  Jimmy Zhang (5a51597d8ac64f180be66f9bc58ebd13281ce242bb8222b3b9eba3d8bf20fcb7)
+  ---------------------------myth---------------------------
+  637BA144D870AEE78F453F4FF753BAFA879CF3A7E7874823B7E759FED9
+  7361B12F2180AA5A6869AC
+  ---------------------------MYTH---------------------------
+  </pre>
+</div>
