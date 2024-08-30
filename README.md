@@ -24,4 +24,7 @@ source code.
 |[simple-text-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/simple-text-encryption-v1.html)|Simple Substitution Cipher Text Encryption and Decryption |
 
 
- 
+### Mobile-Friendly Self-Link QR Code
+
+![Mobile-Friendly Self-Link QR Code](assets/github-offline-html-self-link-qr-code.png)
+
