@@ -22,6 +22,8 @@ source code.
 |[aes-cbc-file-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/aes-cbc-file-encryption-v1.html)| AES-256-CBC File Encryption and Decryption|
 |[aes-gcm-text-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/aes-gcm-text-encryption-v1.html) | AES-GCM 128-bit Text Encryption and Decryption| 
 |[simple-text-encryption-v1.html](https://jzhang-payfacto.github.io/offline-html/simple-text-encryption-v1.html)|Simple Substitution Cipher Text Encryption and Decryption |
+|[password-manager.html](https://jzhang-payfacto.github.io/offline-html/password-manager.html)|AES-GCM 256-bit encrypted vault stays only in your browser's memory |
+
 
 
 ### Mobile-Friendly Self-Link QR Code
