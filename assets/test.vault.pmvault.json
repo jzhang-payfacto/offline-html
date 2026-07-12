@@ -1,0 +1,15 @@
+{
+  "format": "pm-vault",
+  "version": 1,
+  "kdf": {
+    "name": "PBKDF2",
+    "hash": "SHA-256",
+    "iterations": 600000,
+    "salt": "mqPj0tw0F6AGDCADBowzbA=="
+  },
+  "cipher": {
+    "name": "AES-GCM",
+    "iv": "pESWkSkDLhFn5ktR"
+  },
+  "ciphertext": "T8y4C+uPbfSDqczdA9E1dMmx0f+sEVn5uJYFgaq8/xUdXHAzR9saIyeP7uHpxqwU3cgTWc0xv4wZGgJQcs+D9OZdJ4H9MATHRmzLDtfhBzy23XteNgBjaFAAhQc/UgD7S5VauOMelOgxDYpS4zX6X2XZDe8LuODRv5SkyJZxwMKFT2yEfoDYFuicZ4qUu+SukkwlBNcu8t9gMi+PSn0LdLxI+tlyRNPkWguypJFdWSL/WjEpipJqEFpzTVRE8uOmd9ad+QuZPER6tz1qzIyB3m1zWKczh8RkC1MrFeZgWV+isDOxy13yKjFkz+BeUHipMxfTfWg4Ec3Jdwr9lPueNBvQhS3FRamVY7WfjQD9eIhYBlznh3UQilVxmBQ3BM1ZIS0LJT5ReMQNeS0T90UUaLzuE0gKhAG7wvggfZ/igMMqyVFFSvtX47otM9aQOsStaIXo1hbEUxTXV1IAEyzSE6WBkUHfrcPBbomfOMEmi6cbqOLsOSbr3ydNXqczG1XtnysnOdoA9tIxD/q/mkQIDNtTL5o7puen7G/CiMcL1F3zdRv4TleIuiuSJ62JZk8dsRIDxR9CBg+T03X1peWqWtcGwEZdLiPF9p5oT2dmAll8fw0ZJQ=="
+}
